@@ -91,6 +91,8 @@ template <class T> class SinglyLinkedList
    Node *tail;
    int count;
 
+   static Node dummy;
+
  public:
    class Iterator;
    friend class Iterator;

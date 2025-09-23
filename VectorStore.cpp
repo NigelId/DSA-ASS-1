@@ -269,6 +269,8 @@ template <typename T> SinglyLinkedList<T>::SinglyLinkedList() : head { nullptr }
 
 template <typename T> SinglyLinkedList<T>::~SinglyLinkedList() { clear(); }
 
+template <typename T> typename SinglyLinkedList<T>::Node SinglyLinkedList<T>::dummy {};
+
 template <typename T> void SinglyLinkedList<T>::add(int index, T e)
 {
    if (index < 0 || index > count)
@@ -276,10 +278,8 @@ template <typename T> void SinglyLinkedList<T>::add(int index, T e)
       throw std::out_of_range("Index is invalid!");
    }
 
-   Node dummy {};
-   Node *prev { &dummy };
-
-   prev->next = this->head;
+   Node *prev { &this->dummy };
+   prev->next = head;
 
    for (int i = -1; i < index - 1; ++i)
    {
@@ -293,8 +293,8 @@ template <typename T> void SinglyLinkedList<T>::add(int index, T e)
       tail = prev->next;
    }
 
-   head = dummy.next;
-   ++count;
+   this->head = dummy.next;
+   this->count++;
 }
 
 template <typename T> void SinglyLinkedList<T>::add(T e) { add(count, e); }
@@ -306,9 +306,7 @@ template <typename T> T SinglyLinkedList<T>::removeAt(int index)
       throw std::out_of_range("Index is invalid!");
    }
 
-   Node dummy {};
-   Node *prev { &dummy };
-
+   Node *prev { &this->dummy };
    prev->next = this->head;
 
    for (int i = -1; i < index - 1; ++i)
@@ -327,8 +325,8 @@ template <typename T> T SinglyLinkedList<T>::removeAt(int index)
    T data = Deleted->data;
    delete Deleted;
 
-   this->head = dummy.next;
-   count--;
+   this->head = this->dummy.next;
+   this->count--;
 
    return data;
 }
@@ -427,6 +425,59 @@ template <typename T> string SinglyLinkedList<T>::toString(string (*item2str)(T 
 
    return ss.str();
 }
+
+template <typename T> SinglyLinkedList<T>::Iterator::Iterator(Node *node) : current { node } {}
+
+template <typename T>
+typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T>::Iterator::operator=(const Iterator &other)
+{
+   if (this != &other)
+   {
+      this->current = other.current;
+   }
+   return *this;
+}
+
+template <typename T> T &SinglyLinkedList<T>::Iterator::operator*()
+{
+   if (current == nullptr)
+   {
+      throw std::out_of_range("Iterator is out of range!");
+   }
+   return current->data;
+}
+
+template <typename T> bool SinglyLinkedList<T>::Iterator::operator!=(const Iterator &other) const
+{
+   return current != other.current;
+}
+
+template <typename T> typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T>::Iterator::operator++()
+{
+   if (current == nullptr)
+   {
+      throw std::out_of_range("Iterator cannot advance past end!");
+   }
+   current = current->next;
+   return *this;
+}
+
+template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::Iterator::operator++(int)
+{
+   Iterator temp = *this;
+   ++(*this);
+   return temp;
+}
+
+template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::begin()
+{
+   return Iterator { head };
+}
+template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::end()
+{
+   return Iterator { nullptr };
+}
+
 // ----------------- VectorStore Implementation -----------------
 
 VectorStore::VectorStore(int dimension, EmbedFn embeddingFunction)
