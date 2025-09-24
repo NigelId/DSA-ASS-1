@@ -1,7 +1,11 @@
 #include "VectorStore.h"
-#include <string>
-
+#include <utility>
 // ----------------- ArrayList Implementation -----------------
+// nested array and linkedlist for debugging and checking
+#define INSTANTIATE_ARRAYLIST_NESTED(T)                                                                      \
+   template class ArrayList<ArrayList<T>>;                                                                   \
+   template class ArrayList<ArrayList<ArrayList<T>>>;                                                        \
+   template class ArrayList<ArrayList<ArrayList<ArrayList<T>>>>;
 
 template <class T>
 ArrayList<T>::ArrayList(int initCapacity)
@@ -10,7 +14,7 @@ ArrayList<T>::ArrayList(int initCapacity)
 }
 
 template <class T>
-ArrayList<T>::ArrayList(const ArrayList<T> &other)
+ArrayList<T>::ArrayList(const ArrayList<T> &other) noexcept(std::is_nothrow_copy_constructible_v<T>)
     : count { other.size() }, capacity { other.capacity }, data((T *)::operator new(other.size() * sizeof(T)))
 {
    for (int i = 0; i < count; i++)
@@ -19,7 +23,10 @@ ArrayList<T>::ArrayList(const ArrayList<T> &other)
    }
 }
 
-template <class T> ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &other)
+template <class T>
+ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &other)
+
+    noexcept(std::is_nothrow_copy_constructible_v<T> && std::is_nothrow_copy_assignable_v<T>)
 {
    if (this != &other)
    {
@@ -31,10 +38,9 @@ template <class T> ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &oth
 
       this->count = other.count;
       this->capacity = other.capacity;
-
       this->data = (T *)::operator new(capacity * sizeof(T));
 
-      for (int i = 0; i < count; i++)
+      for (int i {}; i < this->count; i++)
       {
          new (&this->data[i]) T { other.data[i] };
       }
@@ -42,11 +48,11 @@ template <class T> ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &oth
    return *this;
 }
 
-template <typename T> void ArrayList<T>::clear()
+template <typename T> void ArrayList<T>::clear() noexcept(std::is_nothrow_destructible_v<T>)
 {
    if (data != nullptr)
    {
-      for (size_t i {}; i < count; i++)
+      for (int i {}; i < count; i++)
       {
          this->data[i].~T();
       }
@@ -59,9 +65,9 @@ template <typename T> void ArrayList<T>::clear()
    }
 }
 
-template <typename T> ArrayList<T>::~ArrayList()
+template <typename T> ArrayList<T>::~ArrayList() noexcept
 {
-   for (size_t i {}; i < count; i++)
+   for (int i {}; i < count; i++)
    {
       this->data[i].~T();
    }
@@ -77,36 +83,31 @@ template <typename T> void ArrayList<T>::ensureCapacity(int cap)
 
       T *new_data { (T *)::operator new(capacity * sizeof(T)) };
 
-      for (size_t i {}; i < this->count; i++)
+      for (int i {}; i < this->count; i++)
       {
          new (&new_data[i]) T { std::move(data[i]) };
          this->data[i].~T();
       }
-      ::operator delete(this->data, count * sizeof(T));
+      ::operator delete(this->data, capacity * sizeof(T));
       this->data = new_data;
    }
 }
 
 template <typename T> void ArrayList<T>::add(T e)
 {
-   ensureCapacity(this->count);
-   this->data[count++] = e;
+   ensureCapacity(this->count + 1);
+   return add(this->count, e);
 }
 
 template <typename T> void ArrayList<T>::add(int index, T e)
 {
    if (index > count || index < 0)
-   {
       throw std::out_of_range("Index is invalid!");
-   }
 
-   ensureCapacity(this->count + 1);
-
-   new (&data[count]) T {};
+   ensureCapacity(count + 1);
 
    std::move_backward(&data[index], &data[count], &data[count + 1]);
-
-   this->data[index] = std::move(e);
+   new (&data[index]) T(std::move(e));
 
    this->count++;
 }
@@ -117,7 +118,8 @@ template <typename T> T ArrayList<T>::removeAt(int index)
    {
       throw std::out_of_range("Index is invalid!");
    }
-   T tmp { this->data[index] };
+
+   T tmp { std::move(this->data[index]) };
 
    if (index < count - 1)
    {
@@ -146,7 +148,7 @@ template <typename T> void ArrayList<T>::set(int index, T e)
    {
       throw std::out_of_range("Index is invalid!");
    }
-   this->data[index] = e;
+   this->data[index] = std::move(e);
 }
 
 template <typename T> int ArrayList<T>::indexOf(T e) const
@@ -163,18 +165,20 @@ template <typename T> int ArrayList<T>::indexOf(T e) const
 
 template <typename T> std::string ArrayList<T>::toString(std::string (*item2str)(T &)) const
 {
-   std::stringstream ss;
-   ss << "[";
-   ss << this->data[0];
+   std::ostringstream oss; // support only output,  much much much much less heavier than ss
+   oss << "[";
 
-   for (int i = 1; i < count; i++)
+   for (int i {}; i < count; i++)
    {
-      ss << ", ";
-      item2str ? (ss << item2str(data[i])) : (ss << data[i]);
+      if (i)
+      {
+         oss << ", ";
+      }
+      item2str ? (oss << item2str(data[i])) : (oss << data[i]);
    }
 
-   ss << "]";
-   return ss.str();
+   oss << "]";
+   return oss.str();
 }
 
 template <typename T> bool ArrayList<T>::contains(T e) const { return (indexOf(e) != -1); }
@@ -255,9 +259,15 @@ template <class T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::opera
    return temp;
 }
 
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::begin() { return Iterator(this, 0); }
+template <class T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noexcept
+{
+   return Iterator(this, 0);
+}
 
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::end() { return Iterator(this, count); }
+template <class T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
+{
+   return Iterator(this, count);
+}
 
 // TODO: implement other methods of ArrayList::Iterator
 
@@ -501,6 +511,12 @@ template class ArrayList<int>;
 template class ArrayList<double>;
 template class ArrayList<float>;
 template class ArrayList<Point>;
+
+INSTANTIATE_ARRAYLIST_NESTED(char)
+INSTANTIATE_ARRAYLIST_NESTED(string)
+INSTANTIATE_ARRAYLIST_NESTED(int)
+INSTANTIATE_ARRAYLIST_NESTED(double)
+INSTANTIATE_ARRAYLIST_NESTED(float)
 
 template class SinglyLinkedList<char>;
 template class SinglyLinkedList<string>;

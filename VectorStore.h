@@ -23,28 +23,109 @@ template <class T> class ArrayList
    class Iterator;
    friend class Iterator;
 
-   ArrayList(int initCapacity = 10);
-   ArrayList(const ArrayList<T> &other); // Deep Copy
-   ~ArrayList();
-   ArrayList<T> &operator=(const ArrayList<T> &other); // Deep Copy
+ public:
+   explicit ArrayList(int initCapacity = 10);
+   ArrayList(const ArrayList<T> &other) noexcept(std::is_nothrow_copy_constructible_v<T>);
+   ~ArrayList() noexcept;
 
+ public:
+   ArrayList<T> &operator=(const ArrayList<T> &other)
+
+       noexcept(std::is_nothrow_copy_constructible_v<T> && std::is_nothrow_copy_assignable_v<T>);
+
+ public:
+   // bad habit, this could serve as watermark tho
+   ArrayList(std::initializer_list<T> init) noexcept(std::is_nothrow_copy_constructible_v<T>)
+       : count { static_cast<int>(init.size()) }
+   {
+      this->capacity = ((this->count + 1) * 1.5);
+      this->data = (T *)::operator new(this->capacity * sizeof(T));
+
+      T *p { this->data };
+      for (const T &v : init)
+      {
+         new (p++) T { v };
+      }
+   }
+
+   ArrayList<T> &operator=(std::initializer_list<T> init) noexcept(std::is_nothrow_copy_constructible_v<T>)
+   {
+      for (int i = 0; i < count; ++i)
+      {
+         data[i].~T();
+      }
+      ::operator delete(data, capacity * sizeof(T));
+
+      this->count = static_cast<int>(init.size());
+      this->capacity = (count + 1) * 1.5;
+      this->data = (T *)::operator new(capacity * sizeof(T));
+
+      T *p { this->data };
+      for (const T &v : init)
+      {
+         new (p++) T { v };
+      }
+
+      return *this;
+   }
+
+ public:
+   // quality of life stuff
+   friend std::ostream &operator<<(std::ostream &os, const ArrayList<T> &list) noexcept
+   {
+      os << "[";
+      for (int i {}; i < list.size(); i++)
+      {
+         if (i)
+         {
+            os << ", ";
+         }
+         os << list.data[i];
+      }
+      os << "]";
+      return os;
+   }
+
+ public:
+   [[nodiscard]] friend bool operator==(const ArrayList<T> &lhs, const ArrayList<T> &rhs) noexcept
+   {
+      if (lhs.count != rhs.count)
+      {
+         return false;
+      }
+      for (int i {}; i < lhs.count; i++)
+      {
+         if (!(lhs.data[i] == rhs.data[i]))
+         {
+            return false;
+         }
+      }
+      return true;
+   }
+   [[nodiscard]] friend bool operator!=(const ArrayList<T> &lhs, const ArrayList<T> &rhs) noexcept
+   {
+      return !(lhs == rhs);
+   }
+
+ public:
    void add(T e);
    void add(int index, T e);
    T removeAt(int index);
-   inline bool empty() const { return count == 0; };
 
-   inline int size() const { return count; };
+ public:
+   [[nodiscard]] inline bool empty() const noexcept { return count == 0; };
+   [[nodiscard]] inline int size() const noexcept { return count; };
+   [[nodiscard]] int indexOf(T item) const;
+   [[nodiscard]] bool contains(T item) const;
 
-   void clear();
-
-   T &get(int index);
-   void set(int index, T e);
-   int indexOf(T item) const;
-   bool contains(T item) const;
    string toString(string (*item2str)(T &) = 0) const;
+   T &get(int index);
+   void clear() noexcept(std::is_nothrow_destructible_v<T>);
+   void set(int index, T e);
 
-   Iterator begin();
-   Iterator end();
+ public:
+   Iterator begin() noexcept;
+   Iterator end() noexcept;
 
    // Inner class Iterator
    class Iterator
