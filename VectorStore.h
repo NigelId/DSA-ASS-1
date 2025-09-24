@@ -89,6 +89,10 @@ template <class T> class ArrayList
  public:
    [[nodiscard]] friend bool operator==(const ArrayList<T> &lhs, const ArrayList<T> &rhs) noexcept
    {
+      if (&rhs == &lhs)
+      {
+         return true;
+      }
       if (lhs.count != rhs.count)
       {
          return false;
