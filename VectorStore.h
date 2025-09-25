@@ -7,6 +7,119 @@
 // Class ArrayList
 // ==============================
 
+namespace algorithms
+{
+template <typename Iterator> void iter_swap(Iterator a, Iterator b)
+{
+   auto tmp = std::move(*a);
+   *a = std::move(*b);
+   *b = std::move(tmp);
+}
+
+// Insertion sort
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+void insertion_sort(Iterator first, Iterator last, Compare comp = Compare())
+{
+   for (Iterator i = first + 1; i != last; ++i)
+   {
+      auto key { std::move(*i) };
+      Iterator j { i };
+      while (j > first && comp(key, *(j - 1)))
+      {
+         *j = std::move(*(j - 1));
+         --j;
+      }
+      *j = std::move(key);
+   }
+}
+
+// Heapify for heap sort
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+void heapify(Iterator first, Iterator last, Iterator root, int len, Compare comp = Compare())
+{
+   int largest { root - first };
+   int l { 2 * largest + 1 };
+   int r { 2 * largest + 2 };
+
+   if (l < len && comp(*(first + largest), *(first + l)))
+   {
+      largest = l;
+   }
+   if (r < len && comp(*(first + largest), *(first + r)))
+   {
+      largest = r;
+   }
+
+   if (largest != root - first)
+   {
+      iter_swap(first + largest, root);
+      heapify(first, last, first + largest, len, comp);
+   }
+}
+
+// Heap sort
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+void heap_sort(Iterator first, Iterator last, Compare comp = Compare())
+{
+   int len = last - first;
+   for (int i { len / 2 - 1 }; i >= 0; --i)
+   {
+      heapify(first, last, first + i, len, comp);
+   }
+   for (int i { len - 1 }; i > 0; --i)
+   {
+      iter_swap(first, first + i);
+      heapify(first, first + i, first, i, comp);
+   }
+}
+
+// Partition for quicksort
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+Iterator partition(Iterator first, Iterator last, Compare comp = Compare())
+{
+   Iterator pivot { last - 1 };
+   Iterator i { first };
+   for (Iterator j = first; j != last - 1; ++j)
+   {
+      if (comp(*j, *pivot))
+      {
+         iter_swap(i, j);
+         ++i;
+      }
+   }
+   iter_swap(i, pivot);
+   return i;
+}
+
+// Introsort implementation
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+void introsort_impl(Iterator first, Iterator last, int depth_limit, Compare comp = Compare())
+{
+   while (last - first > 16)
+   {
+      if (depth_limit == 0)
+      {
+         heap_sort(first, last, comp);
+         return;
+      }
+      --depth_limit;
+      Iterator pivot { partition(first, last, comp) };
+      introsort_impl(pivot + 1, last, depth_limit, comp);
+      last = pivot;
+   }
+   insertion_sort(first, last, comp);
+}
+
+// Public sort function
+template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
+void sort(Iterator first, Iterator last, Compare comp = Compare())
+{
+   int depth_limit { 2 * static_cast<int>(std::log(last - first)) };
+   introsort_impl(first, last, depth_limit, comp);
+}
+// this is clangd doings
+} // namespace algorithms
+
 template <class T> class ArrayList
 {
 #ifdef TESTING
@@ -130,6 +243,9 @@ template <class T> class ArrayList
    Iterator begin() noexcept;
    Iterator end() noexcept;
 
+ public:
+   T &operator[](int index);
+   const T &operator[](int index) const;
    // Inner class Iterator
    class Iterator
    {
@@ -141,16 +257,43 @@ template <class T> class ArrayList
       ArrayList<T> *pList;
 
     public:
-      Iterator(ArrayList<T> *pList = nullptr, int index = 0);
-      Iterator &operator=(const Iterator &other) noexcept; // Deep Copy
+      using iterator_category = std::random_access_iterator_tag;
+      using value_type = T;
+      using difference_type = std::ptrdiff_t;
+      using pointer = T *;
+      using reference = T &;
 
+    public:
+      Iterator(ArrayList<T> *pList = nullptr, int index = 0);
+      Iterator(const Iterator &other) noexcept = default;
+      Iterator &operator=(const Iterator &other) noexcept; // Deep Copy
+    public:
       Iterator &operator++();
       Iterator operator++(int);
       Iterator &operator--();
       Iterator operator--(int);
 
       [[nodiscard]] T &operator*();
+
+    public:
+      Iterator &operator+=(int n);
+      Iterator &operator-=(int n);
+      [[nodiscard]] Iterator operator+(int n) const;
+      [[nodiscard]] Iterator operator-(int n) const;
+
+    public:
+      [[nodiscard]] int operator-(const Iterator &other) const;
+      [[nodiscard]] bool operator==(const Iterator &other) const noexcept;
       [[nodiscard]] bool operator!=(const Iterator &other) const noexcept;
+
+    public:
+      [[nodiscard]] bool operator<(const Iterator &other) const noexcept;
+      [[nodiscard]] bool operator<=(const Iterator &other) const noexcept;
+      [[nodiscard]] bool operator>(const Iterator &other) const noexcept;
+      [[nodiscard]] bool operator>=(const Iterator &other) const noexcept;
+
+    public:
+      [[nodiscard]] T &operator[](int n) const;
    };
 };
 
@@ -282,7 +425,6 @@ template <class T> class SinglyLinkedList
 
  public:
    T removeAt(int index);
-   T pop();
    bool removeItem(T item);
    void clear() noexcept(std::is_nothrow_destructible_v<T>);
 

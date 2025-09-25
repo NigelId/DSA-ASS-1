@@ -20,7 +20,7 @@ ArrayList<T>::ArrayList(const ArrayList<T> &other) noexcept(std::is_nothrow_copy
 
     : count { other.size() }, capacity { other.capacity }, data((T *)::operator new(other.size() * sizeof(T)))
 {
-   for (int i = 0; i < count; i++)
+   for (int i {}; i < count; i++)
    {
       new (&this->data[i]) T { other.data[i] };
    }
@@ -33,7 +33,7 @@ ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &other)
 {
    if (this != &other)
    {
-      for (int i = 0; i < count; i++)
+      for (int i {}; i < count; i++)
       {
          this->data[i].~T();
       }
@@ -105,12 +105,14 @@ template <typename T> void ArrayList<T>::add(T e)
 template <typename T> void ArrayList<T>::add(int index, T e)
 {
    if (index > count || index < 0)
+   {
       throw std::out_of_range("Index is invalid!");
+   }
 
    ensureCapacity(count + 1);
 
    std::move_backward(&data[index], &data[count], &data[count + 1]);
-   new (&data[index]) T(std::move(e));
+   new (&data[index]) T { std::move(e) };
 
    this->count++;
 }
@@ -273,6 +275,110 @@ template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noex
 template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
 {
    return Iterator(this, count);
+}
+
+template <typename T> T &ArrayList<T>::operator[](int index)
+{
+   if (index < 0 || index >= count)
+   {
+      throw std::out_of_range("Index out of range");
+   }
+   return data[index];
+}
+
+template <typename T> const T &ArrayList<T>::operator[](int index) const
+{
+   if (index < 0 || index >= count)
+   {
+      throw std::out_of_range("Index out of range");
+   }
+   return data[index];
+}
+
+template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator+=(int n)
+{
+   if (n < 0 && static_cast<size_t>(-n) > this->cursor)
+   {
+      throw std::out_of_range("Iterator cannot move before begin!");
+   }
+   if (n > 0 && this->cursor + n > this->pList->count)
+   {
+      throw std::out_of_range("Iterator cannot advance past end!");
+   }
+   this->cursor += n;
+   return *this;
+}
+
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator+(int n) const
+{
+   Iterator temp = { *this };
+   temp += n;
+   return temp;
+}
+
+template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator-=(int n)
+{
+   if (n > 0 && static_cast<size_t>(n) > this->cursor)
+   {
+      throw std::out_of_range("Iterator cannot move before begin!");
+   }
+   if (n < 0 && this->cursor + (-n) > this->pList->count)
+   {
+      throw std::out_of_range("Iterator cannot advance past end!");
+   }
+   this->cursor -= n;
+   return *this;
+}
+
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator-(int n) const
+{
+   Iterator temp = { *this };
+   temp -= n;
+   return temp;
+}
+
+template <typename T> bool ArrayList<T>::Iterator::operator==(const Iterator &other) const noexcept
+{
+   return this->pList == other.pList && this->cursor == other.cursor;
+}
+
+template <typename T> int ArrayList<T>::Iterator::operator-(const Iterator &other) const
+{
+   if (this->pList != other.pList)
+   {
+      throw std::invalid_argument("Iterators from different ArrayLists cannot be subtracted!");
+   }
+   return this->cursor - other.cursor;
+}
+
+template <typename T> bool ArrayList<T>::Iterator::operator<(const Iterator &other) const noexcept
+{
+   return this->cursor < other.cursor;
+}
+
+template <typename T> bool ArrayList<T>::Iterator::operator<=(const Iterator &other) const noexcept
+{
+   return this->cursor <= other.cursor;
+}
+
+template <typename T> bool ArrayList<T>::Iterator::operator>(const Iterator &other) const noexcept
+{
+   return this->cursor > other.cursor;
+}
+
+template <typename T> bool ArrayList<T>::Iterator::operator>=(const Iterator &other) const noexcept
+{
+   return this->cursor >= other.cursor;
+}
+
+template <typename T> T &ArrayList<T>::Iterator::operator[](int n) const
+{
+   int index { this->cursor + n };
+   if (index < 0 || index >= this->pList->count)
+   {
+      throw std::out_of_range("Iterator index out of range!");
+   }
+   return (*this->pList)[index];
 }
 
 // TODO: implement other methods of ArrayList::Iterator
