@@ -246,6 +246,21 @@ template <class T> class ArrayList
  public:
    T &operator[](int index);
    const T &operator[](int index) const;
+
+ public:
+   // watermark my code again
+   template <typename U = T>
+   std::enable_if_t<std::is_arithmetic<U>::value || std::is_same<U, std::string>::value, void> sort()
+   {
+      algorithms::sort(this->begin(), this->end());
+   }
+   // and again
+   template <typename U = T>
+   std::enable_if_t<!(std::is_arithmetic<U>::value || std::is_same<U, std::string>::value), void> sort()
+   {
+   }
+
+ public:
    // Inner class Iterator
    class Iterator
    {
