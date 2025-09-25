@@ -11,7 +11,7 @@ namespace algorithms
 {
 template <typename Iterator> void iter_swap(Iterator a, Iterator b)
 {
-   auto tmp = std::move(*a);
+   auto tmp { std::move(*a) };
    *a = std::move(*b);
    *b = std::move(tmp);
 }
@@ -20,7 +20,7 @@ template <typename Iterator> void iter_swap(Iterator a, Iterator b)
 template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
 void insertion_sort(Iterator first, Iterator last, Compare comp = Compare())
 {
-   for (Iterator i = first + 1; i != last; ++i)
+   for (Iterator i { first + 1 }; i != last; ++i)
    {
       auto key { std::move(*i) };
       Iterator j { i };
@@ -61,7 +61,7 @@ void heapify(Iterator first, Iterator last, Iterator root, int len, Compare comp
 template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
 void heap_sort(Iterator first, Iterator last, Compare comp = Compare())
 {
-   int len = last - first;
+   int len { last - first };
    for (int i { len / 2 - 1 }; i >= 0; --i)
    {
       heapify(first, last, first + i, len, comp);
@@ -102,7 +102,7 @@ void introsort_impl(Iterator first, Iterator last, int depth_limit, Compare comp
          heap_sort(first, last, comp);
          return;
       }
-      --depth_limit;
+      depth_limit--;
       Iterator pivot { partition(first, last, comp) };
       introsort_impl(pivot + 1, last, depth_limit, comp);
       last = pivot;
