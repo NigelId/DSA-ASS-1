@@ -1,11 +1,13 @@
 #include "VectorStore.h"
-#include <utility>
 // ----------------- ArrayList Implementation -----------------
 // nested array and linkedlist for debugging and checking
 #define INSTANTIATE_ARRAYLIST_NESTED(T)                                                                      \
    template class ArrayList<ArrayList<T>>;                                                                   \
    template class ArrayList<ArrayList<ArrayList<T>>>;                                                        \
-   template class ArrayList<ArrayList<ArrayList<ArrayList<T>>>>;
+   template class ArrayList<ArrayList<ArrayList<ArrayList<T>>>>;                                             \
+   template class SinglyLinkedList<SinglyLinkedList<T>>;                                                     \
+   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>;                                   \
+   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>>;
 
 template <class T>
 ArrayList<T>::ArrayList(int initCapacity)
@@ -15,6 +17,7 @@ ArrayList<T>::ArrayList(int initCapacity)
 
 template <class T>
 ArrayList<T>::ArrayList(const ArrayList<T> &other) noexcept(std::is_nothrow_copy_constructible_v<T>)
+
     : count { other.size() }, capacity { other.capacity }, data((T *)::operator new(other.size() * sizeof(T)))
 {
    for (int i = 0; i < count; i++)
@@ -184,7 +187,9 @@ template <typename T> std::string ArrayList<T>::toString(std::string (*item2str)
 template <typename T> bool ArrayList<T>::contains(T e) const { return (indexOf(e) != -1); }
 
 // ----------------- Iterator of ArrayList Implementation -----------------
-template <class T>
+template <typename T> using AIterator = typename ArrayList<T>::Iterator;
+
+template <typename T>
 ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : pList { pList }, cursor { index }
 {
    if (cursor < 0 || cursor > this->pList->count)
@@ -193,7 +198,8 @@ ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : pList { pList
    }
 }
 
-template <class T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator=(const Iterator &other)
+template <typename T>
+typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator=(const Iterator &other) noexcept
 {
    if (this != &other)
    {
@@ -203,68 +209,68 @@ template <class T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::oper
    return *this;
 }
 
-template <class T> T &ArrayList<T>::Iterator::operator*()
+template <typename T> T &ArrayList<T>::Iterator::operator*()
 {
-   if (cursor >= this->pList->count)
+   if (this->cursor >= this->pList->count)
    {
       throw std::out_of_range("Iterator is out of range");
    }
-   return this->pList->data[cursor];
+   return this->pList->data[this->cursor];
 }
 
-template <class T> bool ArrayList<T>::Iterator::operator!=(const Iterator &other) const
+template <typename T> bool ArrayList<T>::Iterator::operator!=(const Iterator &other) const noexcept
 {
    return this->cursor != other.cursor || this->pList != other.pList;
 }
 
-template <class T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator++()
+template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator++()
 {
-   if (cursor == pList->count)
+   if (this->cursor == this->pList->count)
    {
       throw std::out_of_range("Iterator cannot advance past end!");
    }
-   ++cursor;
+   this->cursor++;
    return *this;
 }
 
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator++(int)
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator++(int)
 {
-   if (cursor == pList->count)
+   if (this->cursor == this->pList->count)
    {
       throw std::out_of_range("Iterator cannot advance past end!");
    }
    Iterator temp = *this;
-   ++cursor;
+   this->cursor++;
    return temp;
 }
 
-template <class T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator--()
+template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator--()
+{
+   if (this->cursor == 0)
+   {
+      throw std::out_of_range("Iterator cannot move before begin!");
+   }
+   this->cursor--;
+   return *this;
+}
+
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator--(int)
 {
    if (cursor == 0)
    {
       throw std::out_of_range("Iterator cannot move before begin!");
    }
-   --cursor;
-   return *this;
-}
-
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator--(int)
-{
-   if (cursor == 0)
-   {
-      throw std::out_of_range("Iterator cannot move before begin!");
-   }
-   Iterator temp = *this;
-   --cursor;
+   Iterator temp { *this };
+   this->cursor--;
    return temp;
 }
 
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noexcept
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noexcept
 {
    return Iterator(this, 0);
 }
 
-template <class T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
 {
    return Iterator(this, count);
 }
@@ -273,13 +279,12 @@ template <class T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
 
 // ----------------- SinglyLinkedList Implementation -----------------
 
-template <typename T> SinglyLinkedList<T>::SinglyLinkedList() : head { nullptr }, tail { nullptr }, count {}
+template <typename T>
+SinglyLinkedList<T>::SinglyLinkedList() noexcept : head { nullptr }, tail { nullptr }, count {}
 {
 }
 
-template <typename T> SinglyLinkedList<T>::~SinglyLinkedList() { clear(); }
-
-template <typename T> typename SinglyLinkedList<T>::Node SinglyLinkedList<T>::dummy {};
+template <typename T> SinglyLinkedList<T>::~SinglyLinkedList() noexcept { clear(); }
 
 template <typename T> void SinglyLinkedList<T>::add(int index, T e)
 {
@@ -288,26 +293,36 @@ template <typename T> void SinglyLinkedList<T>::add(int index, T e)
       throw std::out_of_range("Index is invalid!");
    }
 
-   Node *prev { &this->dummy };
-   prev->next = head;
-
-   for (int i = -1; i < index - 1; ++i)
+   if (index == this->count)
    {
-      prev = prev->next;
+      return add(e);
    }
 
-   prev->next = new Node { e, prev->next };
+   Node **prev { &this->head };
 
-   if (index == count)
+   for (int i = 0; i < index; ++i)
    {
-      tail = prev->next;
+      prev = &(*prev)->next;
    }
 
-   this->head = dummy.next;
+   *prev = new Node { e, *prev };
+
    this->count++;
 }
 
-template <typename T> void SinglyLinkedList<T>::add(T e) { add(count, e); }
+template <typename T> void SinglyLinkedList<T>::add(T e)
+{
+   Node *tmp { new Node { e } };
+   this->count++;
+
+   if (tail)
+   {
+      this->tail->next = tmp;
+      this->tail = tmp;
+      return;
+   }
+   this->head = this->tail = tmp;
+}
 
 template <typename T> T SinglyLinkedList<T>::removeAt(int index)
 {
@@ -316,26 +331,24 @@ template <typename T> T SinglyLinkedList<T>::removeAt(int index)
       throw std::out_of_range("Index is invalid!");
    }
 
-   Node *prev { &this->dummy };
-   prev->next = this->head;
+   Node **prev { &head };
 
-   for (int i = -1; i < index - 1; ++i)
+   for (int i {}; i < index; i++)
    {
-      prev = prev->next;
+      prev = &(*prev)->next;
    }
 
-   Node *Deleted = prev->next;
-   prev->next = Deleted->next;
+   Node *Deleted { *prev };
+   *prev = Deleted->next;
 
    if (Deleted == this->tail)
    {
-      this->tail = prev;
+      this->tail = *prev;
    }
 
-   T data = Deleted->data;
+   T data { std::move(Deleted->data) };
    delete Deleted;
 
-   this->head = this->dummy.next;
    this->count--;
 
    return data;
@@ -358,8 +371,6 @@ template <typename T> bool SinglyLinkedList<T>::removeItem(T e)
    return false;
 }
 
-template <typename T> bool SinglyLinkedList<T>::empty() const { return this->count == 0; }
-
 template <typename T> bool SinglyLinkedList<T>::contains(T e) const
 {
    Node *current { this->head };
@@ -374,8 +385,6 @@ template <typename T> bool SinglyLinkedList<T>::contains(T e) const
    }
    return false;
 }
-
-template <typename T> int SinglyLinkedList<T>::size() const { return this->count; }
 
 template <typename T> T &SinglyLinkedList<T>::get(int index)
 {
@@ -394,52 +403,59 @@ template <typename T> T &SinglyLinkedList<T>::get(int index)
    return current->data;
 }
 
-template <typename T> void SinglyLinkedList<T>::clear()
+template <typename T> void SinglyLinkedList<T>::clear() noexcept(std::is_nothrow_destructible_v<T>)
 {
-   Node *current = head;
+   Node *current { this->head };
    while (current != nullptr)
    {
       Node *next = current->next;
       delete current;
       current = next;
    }
-   head = nullptr;
-   tail = nullptr;
-   count = 0;
+   this->head = nullptr;
+   this->tail = nullptr;
+   this->count = 0;
 }
 
 template <typename T> string SinglyLinkedList<T>::toString(string (*item2str)(T &)) const
 {
-   stringstream ss;
-   Node *current = head;
+   if (this->head == nullptr)
+   {
+      return "[]";
+   }
+
+   std::ostringstream oss;
+   Node *current { this->head };
 
    while (current != nullptr)
    {
-      ss << "[";
+      oss << "[";
       if (item2str)
       {
-         ss << item2str(current->data);
+         oss << item2str(current->data);
       }
 
       else
       {
-         ss << current->data;
+         oss << current->data;
       }
-      ss << "]";
+      oss << "]";
       if (current->next != nullptr)
       {
-         ss << "->";
+         oss << "->";
       }
       current = current->next;
    }
 
-   return ss.str();
+   return oss.str();
 }
 
-template <typename T> SinglyLinkedList<T>::Iterator::Iterator(Node *node) : current { node } {}
+template <typename T> SinglyLinkedList<T>::Iterator::Iterator(Node *node) noexcept : current { node } {}
 
 template <typename T>
-typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T>::Iterator::operator=(const Iterator &other)
+typename SinglyLinkedList<T>::Iterator &
+SinglyLinkedList<T>::Iterator::operator=(const Iterator &other) noexcept
+
 {
    if (this != &other)
    {
@@ -457,12 +473,13 @@ template <typename T> T &SinglyLinkedList<T>::Iterator::operator*()
    return current->data;
 }
 
-template <typename T> bool SinglyLinkedList<T>::Iterator::operator!=(const Iterator &other) const
+template <typename T> bool SinglyLinkedList<T>::Iterator::operator!=(const Iterator &other) const noexcept
 {
    return current != other.current;
 }
 
 template <typename T> typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T>::Iterator::operator++()
+
 {
    if (current == nullptr)
    {
@@ -474,16 +491,17 @@ template <typename T> typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T
 
 template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::Iterator::operator++(int)
 {
-   Iterator temp = *this;
+   Iterator temp { *this };
    ++(*this);
    return temp;
 }
 
-template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::begin()
+template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::begin() noexcept
 {
    return Iterator { head };
 }
-template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::end()
+
+template <typename T> typename SinglyLinkedList<T>::Iterator SinglyLinkedList<T>::end() noexcept
 {
    return Iterator { nullptr };
 }
@@ -512,15 +530,15 @@ template class ArrayList<double>;
 template class ArrayList<float>;
 template class ArrayList<Point>;
 
-INSTANTIATE_ARRAYLIST_NESTED(char)
-INSTANTIATE_ARRAYLIST_NESTED(string)
-INSTANTIATE_ARRAYLIST_NESTED(int)
-INSTANTIATE_ARRAYLIST_NESTED(double)
-INSTANTIATE_ARRAYLIST_NESTED(float)
-
 template class SinglyLinkedList<char>;
 template class SinglyLinkedList<string>;
 template class SinglyLinkedList<int>;
 template class SinglyLinkedList<double>;
 template class SinglyLinkedList<float>;
 template class SinglyLinkedList<Point>;
+
+INSTANTIATE_ARRAYLIST_NESTED(char)
+INSTANTIATE_ARRAYLIST_NESTED(string)
+INSTANTIATE_ARRAYLIST_NESTED(int)
+INSTANTIATE_ARRAYLIST_NESTED(double)
+INSTANTIATE_ARRAYLIST_NESTED(float)
