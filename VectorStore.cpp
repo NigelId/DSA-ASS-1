@@ -11,14 +11,13 @@
 
 template <class T>
 ArrayList<T>::ArrayList(int initCapacity)
-    : capacity { initCapacity }, count {}, data { (T *)::operator new(initCapacity * sizeof(T)) }
+    : data { (T *)::operator new(initCapacity * sizeof(T)) }, capacity { initCapacity }, count {}
 {
 }
 
 template <class T>
 ArrayList<T>::ArrayList(const ArrayList<T> &other) noexcept(std::is_nothrow_copy_constructible_v<T>)
-
-    : count { other.size() }, capacity { other.capacity }, data((T *)::operator new(other.size() * sizeof(T)))
+    : data((T *)::operator new(other.size() * sizeof(T))), capacity { other.capacity }, count { other.size() }
 {
    for (int i {}; i < count; i++)
    {
@@ -192,7 +191,7 @@ template <typename T> bool ArrayList<T>::contains(T e) const { return (indexOf(e
 template <typename T> using AIterator = typename ArrayList<T>::Iterator;
 
 template <typename T>
-ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : pList { pList }, cursor { index }
+ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : cursor { index }, pList { pList }
 {
    if (cursor < 0 || cursor > this->pList->count)
    {
@@ -297,11 +296,12 @@ template <typename T> const T &ArrayList<T>::operator[](int index) const
 
 template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator+=(int n)
 {
-   if (n < 0 && static_cast<size_t>(-n) > this->cursor)
+   if (-n > this->cursor)
    {
       throw std::out_of_range("Iterator cannot move before begin!");
    }
-   if (n > 0 && this->cursor + n > this->pList->count)
+
+   if (this->cursor + n > this->pList->count)
    {
       throw std::out_of_range("Iterator cannot advance past end!");
    }
@@ -318,16 +318,7 @@ template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::op
 
 template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator-=(int n)
 {
-   if (n > 0 && static_cast<size_t>(n) > this->cursor)
-   {
-      throw std::out_of_range("Iterator cannot move before begin!");
-   }
-   if (n < 0 && this->cursor + (-n) > this->pList->count)
-   {
-      throw std::out_of_range("Iterator cannot advance past end!");
-   }
-   this->cursor -= n;
-   return *this;
+   return *this += (-n);
 }
 
 template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::operator-(int n) const

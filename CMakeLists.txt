@@ -19,3 +19,7 @@ COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}
 COMMAND ${CMAKE_COMMAND} -E echo
 
 )
+
+target_compile_options(${CMAKE_PROJECT_NAME}
+      PRIVATE -Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-deprecated-copy -g
+)

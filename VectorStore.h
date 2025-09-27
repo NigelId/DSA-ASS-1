@@ -9,13 +9,6 @@
 
 namespace algorithms
 {
-template <typename Iterator> void iter_swap(Iterator a, Iterator b)
-{
-   auto tmp { std::move(*a) };
-   *a = std::move(*b);
-   *b = std::move(tmp);
-}
-
 // Insertion sort
 template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
 void insertion_sort(Iterator first, Iterator last, Compare comp = Compare())
@@ -52,7 +45,7 @@ void heapify(Iterator first, Iterator last, Iterator root, int len, Compare comp
 
    if (largest != root - first)
    {
-      iter_swap(first + largest, root);
+      std::iter_swap(first + largest, root);
       heapify(first, last, first + largest, len, comp);
    }
 }
@@ -68,7 +61,7 @@ void heap_sort(Iterator first, Iterator last, Compare comp = Compare())
    }
    for (int i { len - 1 }; i > 0; --i)
    {
-      iter_swap(first, first + i);
+      std::iter_swap(first, first + i);
       heapify(first, first + i, first, i, comp);
    }
 }
@@ -83,11 +76,11 @@ Iterator partition(Iterator first, Iterator last, Compare comp = Compare())
    {
       if (comp(*j, *pivot))
       {
-         iter_swap(i, j);
+         std::iter_swap(i, j);
          ++i;
       }
    }
-   iter_swap(i, pivot);
+   std::iter_swap(i, pivot);
    return i;
 }
 
@@ -359,7 +352,7 @@ template <class T> class SinglyLinkedList
    }
 
  public:
-   SinglyLinkedList<T>(const std::initializer_list<T> &init) noexcept(std::is_nothrow_copy_constructible_v<T>)
+   SinglyLinkedList(const std::initializer_list<T> &init) noexcept(std::is_nothrow_copy_constructible_v<T>)
 
        : head { nullptr }, tail { nullptr }, count {}
    {
@@ -369,7 +362,7 @@ template <class T> class SinglyLinkedList
       }
    }
 
-   SinglyLinkedList<T> &operator=(const std::initializer_list<T> &init)
+   SinglyLinkedList &operator=(const std::initializer_list<T> &init)
 
        noexcept(std::is_nothrow_copy_constructible_v<T>)
    {
