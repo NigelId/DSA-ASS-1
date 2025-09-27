@@ -13,7 +13,7 @@ namespace algorithms
 template <typename Iterator, typename Compare = std::less<typename Iterator::value_type>>
 void insertion_sort(Iterator first, Iterator last, Compare comp = Compare())
 {
-   for (Iterator i { first + 1 }; i != last; ++i)
+   for (Iterator i { first + 1 }; i != last; i++)
    {
       auto key { std::move(*i) };
       Iterator j { i };

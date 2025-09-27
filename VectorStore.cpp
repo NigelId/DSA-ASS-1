@@ -1,13 +1,15 @@
 #include "VectorStore.h"
 // ----------------- ArrayList Implementation -----------------
 // nested array and linkedlist for debugging and checking
-#define INSTANTIATE_ARRAYLIST_NESTED(T)                                                                      \
-   template class ArrayList<ArrayList<T>>;                                                                   \
-   template class ArrayList<ArrayList<ArrayList<T>>>;                                                        \
-   template class ArrayList<ArrayList<ArrayList<ArrayList<T>>>>;                                             \
-   template class SinglyLinkedList<SinglyLinkedList<T>>;                                                     \
-   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>;                                   \
-   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>>;
+#define INSTANTIATE_LIST_NESTED(T)                                                                                     \
+   template class ArrayList<ArrayList<T>>;                                                                             \
+   template class ArrayList<ArrayList<ArrayList<T>>>;                                                                  \
+   template class ArrayList<ArrayList<ArrayList<ArrayList<T>>>>;                                                       \
+   template class ArrayList<ArrayList<ArrayList<ArrayList<ArrayList<T>>>>>;                                            \
+   template class SinglyLinkedList<SinglyLinkedList<T>>;                                                               \
+   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>;                                             \
+   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>>;                           \
+   template class SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<SinglyLinkedList<T>>>>>;
 
 template <class T>
 ArrayList<T>::ArrayList(int initCapacity)
@@ -32,9 +34,9 @@ ArrayList<T> &ArrayList<T>::operator=(const ArrayList<T> &other)
 {
    if (this != &other)
    {
-      for (int i {}; i < count; i++)
+      for (T &data : *this)
       {
-         this->data[i].~T();
+         data.~T();
       }
       ::operator delete(data, count * sizeof(T));
 
@@ -54,9 +56,9 @@ template <typename T> void ArrayList<T>::clear() noexcept(std::is_nothrow_destru
 {
    if (data != nullptr)
    {
-      for (int i {}; i < count; i++)
+      for (T &data : *this)
       {
-         this->data[i].~T();
+         data.~T();
       }
 
       ::operator delete(data, count * sizeof(T));
@@ -197,8 +199,7 @@ ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : cursor { inde
    }
 }
 
-template <typename T>
-typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator=(const Iterator &other) noexcept
+template <typename T> typename ArrayList<T>::Iterator &ArrayList<T>::Iterator::operator=(const Iterator &other) noexcept
 {
    if (this != &other)
    {
@@ -264,15 +265,9 @@ template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::Iterator::op
    return temp;
 }
 
-template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noexcept
-{
-   return Iterator(this, 0);
-}
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::begin() noexcept { return Iterator(this, 0); }
 
-template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept
-{
-   return Iterator(this, count);
-}
+template <typename T> typename ArrayList<T>::Iterator ArrayList<T>::end() noexcept { return Iterator(this, count); }
 
 template <typename T> T &ArrayList<T>::operator[](int index)
 {
@@ -374,10 +369,7 @@ template <typename T> T &ArrayList<T>::Iterator::operator[](int n) const
 
 // ----------------- SinglyLinkedList Implementation -----------------
 
-template <typename T>
-SinglyLinkedList<T>::SinglyLinkedList() noexcept : head { nullptr }, tail { nullptr }, count {}
-{
-}
+template <typename T> SinglyLinkedList<T>::SinglyLinkedList() noexcept : head { nullptr }, tail { nullptr }, count {} {}
 
 template <typename T> SinglyLinkedList<T>::~SinglyLinkedList() noexcept { clear(); }
 
@@ -395,7 +387,7 @@ template <typename T> void SinglyLinkedList<T>::add(int index, T e)
 
    Node **prev { &this->head };
 
-   for (int i = 0; i < index; ++i)
+   for (int i {}; i < index; i++)
    {
       prev = &(*prev)->next;
    }
@@ -548,8 +540,7 @@ template <typename T> string SinglyLinkedList<T>::toString(string (*item2str)(T 
 template <typename T> SinglyLinkedList<T>::Iterator::Iterator(Node *node) noexcept : current { node } {}
 
 template <typename T>
-typename SinglyLinkedList<T>::Iterator &
-SinglyLinkedList<T>::Iterator::operator=(const Iterator &other) noexcept
+typename SinglyLinkedList<T>::Iterator &SinglyLinkedList<T>::Iterator::operator=(const Iterator &other) noexcept
 
 {
    if (this != &other)
@@ -632,8 +623,8 @@ template class SinglyLinkedList<double>;
 template class SinglyLinkedList<float>;
 template class SinglyLinkedList<Point>;
 
-INSTANTIATE_ARRAYLIST_NESTED(char)
-INSTANTIATE_ARRAYLIST_NESTED(string)
-INSTANTIATE_ARRAYLIST_NESTED(int)
-INSTANTIATE_ARRAYLIST_NESTED(double)
-INSTANTIATE_ARRAYLIST_NESTED(float)
+INSTANTIATE_LIST_NESTED(char)
+INSTANTIATE_LIST_NESTED(string)
+INSTANTIATE_LIST_NESTED(int)
+INSTANTIATE_LIST_NESTED(double)
+INSTANTIATE_LIST_NESTED(float)
