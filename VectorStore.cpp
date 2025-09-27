@@ -188,8 +188,6 @@ template <typename T> std::string ArrayList<T>::toString(std::string (*item2str)
 template <typename T> bool ArrayList<T>::contains(T e) const { return (indexOf(e) != -1); }
 
 // ----------------- Iterator of ArrayList Implementation -----------------
-template <typename T> using AIterator = typename ArrayList<T>::Iterator;
-
 template <typename T>
 ArrayList<T>::Iterator::Iterator(ArrayList<T> *pList, int index) : cursor { index }, pList { pList }
 {
